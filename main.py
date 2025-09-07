@@ -1,64 +1,93 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends, HTTPException
 from pydantic import BaseModel
 from typing import Optional
+import models
+from Database import engine, SessionLocal
+from sqlalchemy.orm import Session
 
 app = FastAPI()
 
-Tasks = {
-    1: {
-        "task": "Learn API's",
-        "status": "pending"
-    },
+models.Base.metadata.create_all(bind=engine)
 
-    2: {
-        "task": "Learn python",
-        "status": "Completed"
-    }
-}
+def getDB():
+    try:
+        db = SessionLocal()
+        yield db
+    finally:
+        db.close()
 
 
 class Task(BaseModel):
     task: str
-    status: str
 
 class UpdateTask(BaseModel):
     task: Optional[str] = None
-    status: Optional[str] = None
 
 @app.get("/tasks")
-async def getTasks():
-    return Tasks
+async def getTasks(db: Session = Depends(getDB)):
+    return db.query(models.Tasks).all()
 
-
-@app.post("/CreateTask/{TaskID}")
-async def CreateTasks(TaskID: int, task: Task):
-    if TaskID in Tasks:
-        return {"Error": "Task already exists!"}
-
-    Tasks[TaskID] = task
+@app.get("/tasks/{TaskID}")
+async def getTasks(TaskID: int):
     return Tasks[TaskID]
 
+@app.post("/tasks")
+async def CreateTasks(task: Task, db: Session = Depends(getDB)):
 
-@app.put("/EditTask/{TaskID}")
-async def EditTasks(TaskID: int, task: UpdateTask):
-    if TaskID not in Tasks:
-        return {"Error": "Task not found"}
+    task_model = models.Tasks()
+    task_model.task = task.task
+    task_model.status = "pending"
 
-    if task.task != None:
-        Tasks[TaskID]["task"] = task.task
-
-    if task.status != None:
-        Tasks[TaskID]["status"] = task.status
-
-    return Tasks[TaskID]
+    db.add(task_model)
+    db.commit()
+    return task
 
 
-@app.delete("/DeleteTask/{TaskID}")
-async def DeleteTask(TaskID: int):
+@app.put("/tasks/{TaskID}")
+async def EditTasks(TaskID: int, task: UpdateTask, db: Session = Depends(getDB)):
+    task_model = db.query(models.Tasks).filter(models.Tasks.id == TaskID).first()
+    if task_model is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f" task {TaskID} is not found!"
+        )
 
-    if TaskID not in Tasks:
-        return {"Error": "Task not found!"}
+    task_model.task = task.task
+    task_model.status = task.status
 
-    del Tasks[TaskID]
+    db.add(task_model)
+    db.commit()
+
+    return task
+
+@app.patch("/tasks/{TaskID}")
+async def MarkAsCompleted(TaskID: int, db: Session = Depends(getDB)):
+    task_model = db.query(models.Tasks).filter(models.Tasks.id == TaskID).first()
+
+    if task_model is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f" task {TaskID} is not found!"
+        )
+
+    task_model.status = "Completed"
+    db.add(task_model)
+    db.commit()
+    return {"Task": "marked as completed!"}
+
+@app.delete("/tasks/{TaskID}")
+async def DeleteTask(TaskID: int, db: Session = Depends(getDB)):
+
+    task_model = db.query(models.Tasks).filter(models.Tasks.id == TaskID).first()
+    if task_model is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f" task {TaskID} is not found!"
+        )
+
+    db.delete(task_model)
+    db.commit()
+
+
     return {"Deleted": "Successfully!"}
 
