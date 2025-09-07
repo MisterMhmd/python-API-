@@ -26,7 +26,7 @@ This api was hosted on Render. The link is https://task-managementapi.onrender.c
 <img width="1861" height="897" alt="image" src="https://github.com/user-attachments/assets/e7f34de3-9fe6-4b4a-8904-f3d9871080af" />
 
 # PUT REQUEST (changing the task)
-<img width="1861" height="897" alt="image" src="https://github.com/user-attachments/assets/72d73535-155b-4dff-b9e8-be128cdabd19" />
+<img width="1857" height="882" alt="image" src="https://github.com/user-attachments/assets/721ab4e8-053c-4e10-b6bd-ebcf955e6582" />
 
 # PATCH REQUEST (marking the task as completed)
 <img width="1858" height="899" alt="image" src="https://github.com/user-attachments/assets/30cdbf58-e1dc-47fa-b422-e5e6561fa967" />
