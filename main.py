@@ -28,8 +28,15 @@ async def getTasks(db: Session = Depends(getDB)):
     return db.query(models.Tasks).all()
 
 @app.get("/tasks/{TaskID}")
-async def getTasks(TaskID: int):
-    return Tasks[TaskID]
+async def getTasks(TaskID: int, db: Session = Depends(getDB)):
+    task_model = db.query(models.Tasks).filter(models.Tasks.id == TaskID).first()
+    if task_model is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f" task {TaskID} is not found!"
+        )
+
+    return task_model
 
 @app.post("/tasks")
 async def CreateTasks(task: Task, db: Session = Depends(getDB)):
@@ -53,7 +60,6 @@ async def EditTasks(TaskID: int, task: UpdateTask, db: Session = Depends(getDB))
         )
 
     task_model.task = task.task
-    task_model.status = task.status
 
     db.add(task_model)
     db.commit()
